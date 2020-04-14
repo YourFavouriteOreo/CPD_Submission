@@ -10,6 +10,7 @@ using System.Net;
 using System.Web.Http;
 using System.Web.Http.Description;
 using System.Diagnostics;
+using Microsoft.WindowsAzure.Storage.Blob;
 
 namespace CPD_Coursework_2.Controllers
 {
@@ -20,11 +21,13 @@ namespace CPD_Coursework_2.Controllers
         private CloudStorageAccount storageAccount;
         private CloudTableClient tableClient;
         private CloudTable table;
+        CloudBlobClient blobClient;
 
         public SamplesController()
         {
             storageAccount = CloudStorageAccount.Parse(ConfigurationManager.ConnectionStrings["AzureWebJobsStorage"].ToString());
             tableClient = storageAccount.CreateCloudTableClient();
+            blobClient = storageAccount.CreateCloudBlobClient();
             table = tableClient.GetTableReference("Samples");
         }
 
@@ -193,12 +196,29 @@ namespace CPD_Coursework_2.Controllers
             else
             {
                 SampleEntity deleteEntity = (SampleEntity)retrievedResult.Result;
+                deleteBlobs(deleteEntity);
                 TableOperation deleteOperation = TableOperation.Delete(deleteEntity);
 
                 // Execute the operation.
                 table.Execute(deleteOperation);
 
                 return Ok(retrievedResult.Result);
+            }
+        }
+
+        private void deleteBlobs(SampleEntity sample)
+        {
+            CloudBlobContainer videoContainer = blobClient.GetContainerReference("original");
+            if (sample.Mp4Blob != null)
+            {
+                CloudBlockBlob blob = videoContainer.GetBlockBlobReference(sample.Mp4Blob);
+                blob.DeleteIfExists();
+            }
+            if (sample.SampleMp4Blob != null)
+            {
+                CloudBlockBlob blob = videoContainer.GetBlockBlobReference(sample.SampleMp4Blob);
+                blob.DeleteIfExists();
+                sample.SampleMp4URL = null;
             }
         }
 

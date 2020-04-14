@@ -58,7 +58,7 @@ namespace CPD_Coursework_2.Controllers
             }
 
             SampleEntity sample = (SampleEntity)getOperationResult.Result;
-            CloudBlockBlob blob = videoContainer.GetBlockBlobReference(sample.Mp4Blob);
+            CloudBlockBlob blob = videoContainer.GetBlockBlobReference(sample.SampleMp4Blob);
             Stream blobStream = blob.OpenRead(); 
             HttpResponseMessage message = new HttpResponseMessage(HttpStatusCode.OK); 
             message.Content = new StreamContent(blobStream);
