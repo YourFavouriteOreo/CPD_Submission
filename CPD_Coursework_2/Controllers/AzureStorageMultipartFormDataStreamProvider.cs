@@ -10,8 +10,10 @@ using System.Web;
 
 namespace CPD_Coursework_2.Controllers
 {
+    // Code adapted from https://ppolyzos.com/2016/02/07/upload-a-file-to-azure-blob-storage-using-web-api/
     public class AzureStorageMultipartFormDataStreamProvider : MultipartFormDataStreamProvider
     {
+        // Initialize variables
         private readonly CloudBlobContainer _blobContainer;
         private string fileName;
         private readonly string[] _supportedMimeTypes = {"video/mp4"};
@@ -23,9 +25,11 @@ namespace CPD_Coursework_2.Controllers
 
         public override Stream GetStream(HttpContent parent, HttpContentHeaders headers)
         {
+            // Ensure Parent and Headers are not nul
             if (parent == null) throw new ArgumentNullException(nameof(parent));
             if (headers == null) throw new ArgumentNullException(nameof(headers));
-            Debug.WriteLine(headers.ContentType.ToString().ToLower());
+
+            // Ensure that the file sent is an MP4
             if (!_supportedMimeTypes.Contains(headers.ContentType.ToString().ToLower()))
             {
                 throw new NotSupportedException("Only mp4 supported");
@@ -48,6 +52,7 @@ namespace CPD_Coursework_2.Controllers
         }
         public string getFileName()
         {
+            // Get Filename of Last transferred file
             return this.fileName;
         }
     }

@@ -29,15 +29,21 @@ namespace CPD_Coursework_2.Controllers
         private CloudTable table;
         CloudQueueClient queueClient;
         CloudQueue queue;
+        CloudBlobContainer videoContainer;
 
         public DatasController()
         {
+            // Setup all storage related values
             storageAccount = CloudStorageAccount.Parse(ConfigurationManager.ConnectionStrings["AzureWebJobsStorage"].ToString());
             tableClient = storageAccount.CreateCloudTableClient();
             table = tableClient.GetTableReference("Samples");
             queueClient = storageAccount.CreateCloudQueueClient();
             queue = queueClient.GetQueueReference("samples");
             queue.CreateIfNotExists();
+            blobClient = storageAccount.CreateCloudBlobClient();
+            videoContainer = blobClient.GetContainerReference("original");
+            videoContainer.CreateIfNotExists();
+
 
         }
 
@@ -45,9 +51,8 @@ namespace CPD_Coursework_2.Controllers
         [HttpGet]
         [Route("api/datas/{id}")]
         public HttpResponseMessage Get(string id)
-        {
-            blobClient = storageAccount.CreateCloudBlobClient();
-            CloudBlobContainer videoContainer = blobClient.GetContainerReference("original");
+        {            
+            //Get the sample video file from sample ID passed by user
             TableOperation retriveOperation = TableOperation.Retrieve<SampleEntity>(partitionName, id); ;
 
             TableResult getOperationResult = table.Execute(retriveOperation);
@@ -73,6 +78,7 @@ namespace CPD_Coursework_2.Controllers
         [Route("api/datas/{id}")]
         public async Task<string> UploadBlob(string id)
         {
+            // Get Sample entry 
             blobClient = storageAccount.CreateCloudBlobClient();
             CloudBlobContainer videoContainer = blobClient.GetContainerReference("original");
             TableOperation retriveOperation = TableOperation.Retrieve<SampleEntity>(partitionName, id); ;
@@ -85,9 +91,11 @@ namespace CPD_Coursework_2.Controllers
             }
 
             SampleEntity sample = (SampleEntity)getOperationResult.Result;
+            // Delete current existings blobs if they exist
             deleteOldBlobs(sample);
 
 
+            //Stream in new MP4 file
             var provider = new AzureStorageMultipartFormDataStreamProvider(videoContainer);
 
             try
@@ -106,6 +114,7 @@ namespace CPD_Coursework_2.Controllers
                 return BadRequest("An error has occured while uploading your file. Please try again.").ToString();
             }
 
+            // Add URI of new sample 
             var baseUrl = Request.RequestUri.GetLeftPart(UriPartial.Authority);
             String sampleURL = baseUrl.ToString() + "/api/data/" + id;
             sample.Mp4Blob = provider.getFileName();
@@ -114,7 +123,7 @@ namespace CPD_Coursework_2.Controllers
             TableOperation tableOp = TableOperation.Replace(sample);
             table.Execute(tableOp);
 
-            
+            // Put new message in queue
             var queueMessage = new SampleEntity(partitionName, id);
             queue.AddMessage(new CloudQueueMessage(JsonConvert.SerializeObject(queueMessage)));
 
@@ -123,11 +132,13 @@ namespace CPD_Coursework_2.Controllers
 
         private void deleteOldBlobs(SampleEntity sample)
         {
+            // Delete previous original and sample blobs if they exist
             CloudBlobContainer videoContainer = blobClient.GetContainerReference("original");
             if (sample.Mp4Blob != null)
             {
                 CloudBlockBlob blob = videoContainer.GetBlockBlobReference(sample.Mp4Blob);
                 blob.DeleteIfExists();
+                sample.Mp4Blob = null;
             }
             if (sample.SampleMp4Blob != null)
             {

@@ -31,16 +31,22 @@ namespace CPD_Coursework_2.Migrations
                 // Create the batch operation.
                 TableBatchOperation batchOperation = new TableBatchOperation();
 
-                // Create a product entity and add it to the table.
-                SampleEntity product1 = new SampleEntity(partitionName, "1");
-                product1.Title = "randomTitle";
-                product1.CreatedDate = null;
-                product1.SampleDate = null;
-                
+                // Create a sample entity and add it to the table.
+                SampleEntity sample1 = new SampleEntity(partitionName, "1");
+                sample1.Title = "randomTitle";
+                sample1.CreatedDate = null;
+                sample1.SampleDate = null;
+
+                SampleEntity sample2 = new SampleEntity(partitionName, "2");
+                sample2.Title = "randomTitle2";
+                sample2.CreatedDate = null;
+                sample2.SampleDate = null;
 
 
-                // Add product entities to the batch insert operation.
-                batchOperation.Insert(product1);
+
+                // Add sample entities to the batch insert operation.
+                batchOperation.Insert(sample1);
+                batchOperation.Insert(sample2);
 
 
                 // Execute the batch operation.

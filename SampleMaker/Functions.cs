@@ -35,6 +35,7 @@ namespace SampleMaker
             CloudTable table = storageAccount.CreateCloudTableClient().GetTableReference("Samples");
             CloudBlobClient blobClient = storageAccount.CreateCloudBlobClient();
             CloudBlobContainer videoContainer = blobClient.GetContainerReference("original");
+            videoContainer.CreateIfNotExists();
             TableOperation retriveOperation = TableOperation.Retrieve<SampleEntity>("Samples_Partition_1", sampleEntity.RowKey); ;
 
             TableResult getOperationResult = table.Execute(retriveOperation);
@@ -64,7 +65,7 @@ namespace SampleMaker
             sample.SampleMp4Blob = fileName;
             TableOperation tableOp = TableOperation.Replace(sample);
             table.Execute(tableOp);
-            logger.WriteLine("GenerateThumbnail() completed...");
+            logger.WriteLine("GenerateVideo() completed");
         }
 
         // Create thumbnail - the detail is unimportant but notice formal parameter types.

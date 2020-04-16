@@ -126,6 +126,7 @@
     <Content Include="Views\web.config" />
     <None Include="packages.config" />
     <Content Include="Properties\webjobs-list.json" />
+    <None Include="Properties\PublishProfiles\CPDCoursework220200415075925 - Web Deploy.pubxml" />
     <None Include="Web.Debug.config">
       <DependentUpon>Web.config</DependentUpon>
     </None>

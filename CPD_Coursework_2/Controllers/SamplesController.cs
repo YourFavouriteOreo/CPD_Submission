@@ -16,19 +16,24 @@ namespace CPD_Coursework_2.Controllers
 {
     public class SamplesController : ApiController
     {
+        //  Initialize Storage Variables
         private const String partitionName = "Samples_Partition_1";
 
         private CloudStorageAccount storageAccount;
         private CloudTableClient tableClient;
         private CloudTable table;
         CloudBlobClient blobClient;
+        CloudBlobContainer videoContainer;
 
         public SamplesController()
         {
+            // Assign all store variables
             storageAccount = CloudStorageAccount.Parse(ConfigurationManager.ConnectionStrings["AzureWebJobsStorage"].ToString());
             tableClient = storageAccount.CreateCloudTableClient();
             blobClient = storageAccount.CreateCloudBlobClient();
             table = tableClient.GetTableReference("Samples");
+            videoContainer = blobClient.GetContainerReference("original");
+            videoContainer.CreateIfNotExists();
         }
 
         /// <summary>
@@ -145,13 +150,10 @@ namespace CPD_Coursework_2.Controllers
         /// <param name="Sample"></param>
         /// <returns></returns>
         //[SwaggerResponse(HttpStatusCode.NoContent)]
+        [HttpPut]
         [ResponseType(typeof(void))]
         public IHttpActionResult PutSample(string id, Sample Sample)
         {
-            if (id != Sample.SampleID)
-            {
-                return BadRequest();
-            }
 
             // Create a retrieve operation that takes a Sample entity.
             TableOperation retrieveOperation = TableOperation.Retrieve<SampleEntity>(partitionName, id);
@@ -162,10 +164,14 @@ namespace CPD_Coursework_2.Controllers
             // Assign the result to a SampleEntity object.
             SampleEntity updateEntity = (SampleEntity)retrievedResult.Result;
 
+            deleteBlobs(updateEntity);
+
             updateEntity.Title = Sample.Title;
-            updateEntity.Mp4Blob = Sample.Mp4Blob;
-            updateEntity.SampleMp4Blob = Sample.SampleMp4Blob;
-            updateEntity.SampleDate = DateTime.Now;
+            updateEntity.CreatedDate = DateTime.Now;
+            updateEntity.Mp4Blob = null;
+            updateEntity.SampleMp4Blob = null;
+            updateEntity.SampleDate = null;
+            updateEntity.SampleMp4URL = null;
 
             // Create the TableOperation that inserts the Sample entity.
             // Note semantics of InsertOrReplace() which are consistent with PUT
@@ -175,7 +181,7 @@ namespace CPD_Coursework_2.Controllers
             // Execute the insert operation.
             table.Execute(updateOperation);
 
-            return StatusCode(HttpStatusCode.NoContent);
+            return StatusCode(HttpStatusCode.OK);
         }
 
         // DELETE: api/Samples/5
@@ -208,11 +214,12 @@ namespace CPD_Coursework_2.Controllers
 
         private void deleteBlobs(SampleEntity sample)
         {
-            CloudBlobContainer videoContainer = blobClient.GetContainerReference("original");
+            // Delete original and sample blobs if they exist
             if (sample.Mp4Blob != null)
             {
                 CloudBlockBlob blob = videoContainer.GetBlockBlobReference(sample.Mp4Blob);
                 blob.DeleteIfExists();
+                sample.Mp4Blob = null;
             }
             if (sample.SampleMp4Blob != null)
             {
